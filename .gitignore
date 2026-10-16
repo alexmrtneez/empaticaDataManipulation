@@ -1,0 +1,8 @@
+# Datos de participantes y descargas (datos fisiológicos de personas: NO subir)
+cyberduck/
+data/
+
+__pycache__/
+*.pyc
+.venv/
+.DS_Store
