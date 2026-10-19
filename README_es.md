@@ -1,5 +1,7 @@
 # Extracción y preparación de datos Empatica EmbracePlus para evaluación del estrés
 
+🇪🇸 Español · [🇬🇧 English](README.md)
+
 Conjunto de scripts para descargar, convertir, segmentar y visualizar los datos fisiológicos
 de pulseras **Empatica EmbracePlus** en un estudio de evaluación del estrés siguiendo un protocolo de búsqueda de puntos concretos en el
 **Parque de las Ciencias de Granada**. El protocolo se realiza antes (`pre`) y después (`post`) de la instalación de
@@ -20,14 +22,14 @@ se recorta después por su ventana horaria. El protocolo completo (56 tags) est�
 ## Pipeline
 
 ```
-dataDownload.sh ─► main.py ─► separate_participant.py ─► (revisión manual) ─► tags_def.py ─► graficarTiempoFreq.py
+dataDownload.sh ─► avroToCSV.py ─► separate_participant.py ─► (revisión manual) ─► tags_def.py ─► graficarTiempoFreq.py
    (S3 → AVRO)    (AVRO→CSV)     (recorte por participante)   tags_mod.csv     (tags finales)      (figuras)
 ```
 
 | Paso | Script | Qué hace |
 |---|---|---|
 | 1 | `dataDownload.sh` | Descarga los AVRO de una pulsera y un día desde S3 con Cyberduck CLI (`duck`). |
-| 2 | `main.py` (+ `avro_utils.py`) | Convierte los AVRO del día en un CSV por sensor (`processed/`). Se comentan/descomentan las exportaciones según la pulsera. |
+| 2 | `avroToCSV.py` (+ `avro_utils.py`) | Convierte los AVRO del día en un CSV por sensor (`processed/`). Se comentan/descomentan las exportaciones según la pulsera. |
 | 3 | `separate_participant.py` | Recorta los CSV a la ventana horaria de un participante; calcula el pulso (BPM) a partir de los picos sistólicos; extrae los tags del evaluador a `tags_orig.csv` y `tags_mod.csv`. |
 | 4 | *(manual)* | Se revisa `tags_mod.csv`: si falta algún tag anotado en papel, se duplica la fila anterior y se ajusta; opcionalmente se añade la columna `anotacion`. |
 | 5 | `tags_def.py` | Asigna nombre a cada tag por posición y genera `<id>_tags.csv` definitivo. Las filas con `anotacion` se marcan como `extra`. |
@@ -46,8 +48,8 @@ export EMPATICA_S3_BASE="s3://s3.amazonaws.com/<bucket>/v2/<org>/<estudio>/<siti
 ./dataDownload.sh 2026-05-15 HV        # pulsera del evaluado
 ./dataDownload.sh 2026-05-15 FY        # pulsera del evaluador
 
-# 2. AVRO -> CSV  (editar FECHA y DISPOSITIVO en main.py y activar los sensores deseados)
-python main.py
+# 2. AVRO -> CSV  (editar FECHA y DISPOSITIVO en avroToCSV.py y activar los sensores deseados)
+python avroToCSV.py
 
 # 3. Recortar un participante: <center> <fecha> <dev evaluado> <dev evaluador> <id> <fase> <inicio> <fin>
 python separate_participant.py ECO 2026-05-15 HV FY 001 pre 10:32 11:10
@@ -82,10 +84,8 @@ Cada fase se delimita con un par de tags (ver `configuracion_fases` en `graficar
 ## Notas
 
 * Las columnas `datetime_utc` de los CSV están en la **hora local del equipo** que ejecutó
-  `main.py`, no en UTC estricto; las horas de `separate_participant.py` y el eje X de las figuras
+  `avroToCSV.py`, no en UTC estricto; las horas de `separate_participant.py` y el eje X de las figuras
   usan esa misma referencia. Los `unix_timestamp_*` sí son Unix epoch.
 * Preprocesado de las figuras: eliminación de outliers por IQR (1.5·IQR) e interpolación lineal;
   acelerómetro como norma euclídea de los tres ejes.
 * Los datos de participantes (`cyberduck/`, `data/`) están excluidos en `.gitignore`.
-
-

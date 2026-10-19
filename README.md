@@ -1,91 +1,106 @@
-# Extracción y preparación de datos Empatica EmbracePlus para evaluación del estrés
+# Empatica EmbracePlus data extraction and preparation for stress assessment
 
-Conjunto de scripts para descargar, convertir, segmentar y visualizar los datos fisiológicos
-de pulseras **Empatica EmbracePlus** en un estudio de evaluación del estrés siguiendo un protocolo de búsqueda de puntos concretos en el
-**Parque de las Ciencias de Granada**. El protocolo se realiza antes (`pre`) y después (`post`) de la instalación de
-señalización accesible en el parque.
+🇬🇧 English · [🇪🇸 Español](README_es.md)
 
-## Diseño del estudio
+A set of scripts to download, convert, segment and visualize the physiological data of
+**Empatica EmbracePlus** wristbands in a stress-assessment study. Participants follow a protocol
+of finding specific points of the **Parque de las Ciencias de Granada** (Spain). The protocol is run before
+(`pre`) and after (`post`) the installation of accessible signage in the park.
 
-En cada sesión hay **dos pulseras**:
+> The code, comments, console messages and figure labels are in Spanish. This README
+> describes them in English; the Spanish names are kept (in `code format`) so you can find them in the source.
 
-| Pulsera | Quién la lleva | Qué se usa de ella |
+## Study design
+
+Each session uses **two wristbands**:
+
+| Wristband | Worn by | What is used from it |
 |---|---|---|
-| Evaluado | Participante | Señales fisiológicas: EDA, pulso (derivado de picos sistólicos), acelerómetro, temperatura (+ BVP y pasos) |
-| Evaluador | Investigador | Solo **tags**: pulsa el botón en cada hito del protocolo |
+| Participant | The person being assessed | Physiological signals: EDA, pulse (derived from systolic peaks), accelerometer, temperature (+ BVP and steps) |
+| Evaluator | The researcher | **Tags** only: the button is pressed at each milestone of the protocol |
 
-En un mismo día se evalúa a varias personas con la misma pulsera, por lo que cada participante
-se recorta después por su ventana horaria. El protocolo completo (56 tags) está en `Plantilla.pdf`.
+Several people are assessed with the same wristband on a given day, so each participant is
+later trimmed by their own time window. The full protocol (56 tags) is in `Plantilla.pdf`
+("Plantilla" = template).
 
 ## Pipeline
 
 ```
-dataDownload.sh ─► main.py ─► separate_participant.py ─► (revisión manual) ─► tags_def.py ─► graficarTiempoFreq.py
-   (S3 → AVRO)    (AVRO→CSV)     (recorte por participante)   tags_mod.csv     (tags finales)      (figuras)
+dataDownload.sh ─► avroToCSV.py ─► separate_participant.py ─► (manual review) ─► tags_def.py ─► graficarTiempoFreq.py
+   (S3 → AVRO)    (AVRO→CSV)    (per-participant trim)      tags_mod.csv     (final tags)       (figures)
 ```
 
-| Paso | Script | Qué hace |
+| Step | Script | What it does |
 |---|---|---|
-| 1 | `dataDownload.sh` | Descarga los AVRO de una pulsera y un día desde S3 con Cyberduck CLI (`duck`). |
-| 2 | `main.py` (+ `avro_utils.py`) | Convierte los AVRO del día en un CSV por sensor (`processed/`). Se comentan/descomentan las exportaciones según la pulsera. |
-| 3 | `separate_participant.py` | Recorta los CSV a la ventana horaria de un participante; calcula el pulso (BPM) a partir de los picos sistólicos; extrae los tags del evaluador a `tags_orig.csv` y `tags_mod.csv`. |
-| 4 | *(manual)* | Se revisa `tags_mod.csv`: si falta algún tag anotado en papel, se duplica la fila anterior y se ajusta; opcionalmente se añade la columna `anotacion`. |
-| 5 | `tags_def.py` | Asigna nombre a cada tag por posición y genera `<id>_tags.csv` definitivo. Las filas con `anotacion` se marcan como `extra`. |
-| 6 | `graficarTiempoFreq.py` | Genera la figura de series temporales por fases y la de distribuciones (violin + boxplot) por fase y señal. |
+| 1 | `dataDownload.sh` | Downloads the AVRO files of one wristband and one day from S3 using Cyberduck CLI (`duck`). |
+| 2 | `avroToCSV.py` (+ `avro_utils.py`) | Converts the day's AVRO files into one CSV per sensor (`processed/`). Exports are commented/uncommented in `exportar_sensores()` depending on the wristband. |
+| 3 | `separate_participant.py` | Trims the CSVs to one participant's time window; computes pulse rate (BPM) from systolic peaks; extracts the evaluator's tags into `tags_orig.csv` and `tags_mod.csv`. |
+| 4 | *(manual)* | Review `tags_mod.csv`: if a tag noted on paper is missing, duplicate the previous row and adjust it; optionally fill an `anotacion` (annotation) column. |
+| 5 | `tags_def.py` | Assigns a name to each tag by position and generates the final `<id>_tags.csv`. Rows with an `anotacion` are labelled `extra`. |
+| 6 | `graficarTiempoFreq.py` | Generates the per-phase time-series figure and the per-phase, per-signal distribution figure (violin + boxplot). |
 
-## Uso
+## Usage
 
 ```bash
 pip install -r requirements.txt
-# Además: Cyberduck CLI (`duck`) para dataDownload.sh
+# Also required: Cyberduck CLI (`duck`) for dataDownload.sh
 
 export EMPATICA_S3_USER="<access key id>"
-export EMPATICA_S3_BASE="s3://s3.amazonaws.com/<bucket>/v2/<org>/<estudio>/<sitio>/participant_data"
+export EMPATICA_S3_BASE="s3://s3.amazonaws.com/<bucket>/v2/<org>/<study>/<site>/participant_data"
 
-# 1. Descargar (una vez por pulsera y día)
-./dataDownload.sh 2026-05-15 HV        # pulsera del evaluado
-./dataDownload.sh 2026-05-15 FY        # pulsera del evaluador
+# 1. Download (once per wristband and day)
+./dataDownload.sh 2026-05-15 HV        # participant's wristband
+./dataDownload.sh 2026-05-15 FY        # evaluator's wristband
 
-# 2. AVRO -> CSV  (editar FECHA y DISPOSITIVO en main.py y activar los sensores deseados)
-python main.py
+# 2. AVRO -> CSV  (edit FECHA and DISPOSITIVO in avroToCSV.py and enable the desired sensors)
+python avroToCSV.py
 
-# 3. Recortar un participante: <center> <fecha> <dev evaluado> <dev evaluador> <id> <fase> <inicio> <fin>
+# 3. Trim one participant: <center> <date> <participant dev> <evaluator dev> <id> <phase> <start> <end>
 python separate_participant.py ECO 2026-05-15 HV FY 001 pre 10:32 11:10
 
-# 4. Revisar a mano data/pre/ECO/ECO_001-2026-05-15/ECO_001_tags_mod.csv
+# 4. Manually review data/pre/ECO/ECO_001-2026-05-15/ECO_001_tags_mod.csv
 
-# 5. Tags definitivos:  <center> <fecha> <id> <fase>
+# 5. Final tags:  <center> <date> <id> <phase>
 python tags_def.py ECO 2026-05-15 001 pre
 
-# 6. Figuras
+# 6. Figures
 python graficarTiempoFreq.py ECO 2026-05-15 001 pre
 ```
 
-## Estructura de directorios generada
+## Generated directory structure
 
 ```
-cyberduck/<fecha>/<dispositivo>/raw/              AVRO descargados
-cyberduck/<fecha>/<dispositivo>/processed/        CSV de todo el día, por sensor
-data/<pre|post>/<center>/<center>_<id>-<fecha>/   CSV del participante, tags y figuras
+cyberduck/<date>/<device>/raw/              downloaded AVRO files
+cyberduck/<date>/<device>/processed/        whole-day CSVs, per sensor
+data/<pre|post>/<center>/<center>_<id>-<date>/   participant CSVs, tags and figures
 ```
 
-## Fases del protocolo (usadas en las figuras)
+## Protocol phases (used in the figures)
 
-Basal · Baño · Biodomo · Mariposario · Salida · Cuestionario posterior · Recuperación.
-Cada fase se delimita con un par de tags (ver `configuracion_fases` en `graficarTiempoFreq.py`).
+Each phase is delimited by a pair of tags (see `configuracion_fases` in `graficarTiempoFreq.py`).
 
-## Ejemplo de salida (participante ECO_001)
+| Figure label | English | Start tag → end tag |
+|---|---|---|
+| Basal | Baseline | `ts_eav1_start` → `ts_sp_end` |
+| Baño | Activity 1: Bathroom | `ts_inst_task1_start` → `ts_task1_end` |
+| Biodomo | Activity 2: Biodome | `ts_inst_task2_start` → `ts_task2_end` |
+| Mariposario | Activity 3: Butterfly house | `ts_inst_task3_start` → `ts_task3_end` |
+| Salida | Activity 4: Exit | `ts_inst_task4_start` → `ts_task4_end` |
+| Cuestionario posterior | Post-task questionnaire | `ts_eav2_start` → `ts_et_end` |
+| Recuperación | Recovery | `ts_inst_bl_start` → `ts_eav3_end` |
 
-![Series temporales](docs/ECO_001-2026-05-15_biometricos_fases.png)
-![Distribuciones](docs/ECO_001-2026-05-15_distribucion_fases.png)
+## Example output (participant ECO_001)
 
-## Notas
+![Time series](docs/ECO_001-2026-05-15_biometricos_fases.png)
+![Distributions](docs/ECO_001-2026-05-15_distribucion_fases.png)
 
-* Las columnas `datetime_utc` de los CSV están en la **hora local del equipo** que ejecutó
-  `main.py`, no en UTC estricto; las horas de `separate_participant.py` y el eje X de las figuras
-  usan esa misma referencia. Los `unix_timestamp_*` sí son Unix epoch.
-* Preprocesado de las figuras: eliminación de outliers por IQR (1.5·IQR) e interpolación lineal;
-  acelerómetro como norma euclídea de los tres ejes.
-* Los datos de participantes (`cyberduck/`, `data/`) están excluidos en `.gitignore`.
+## Notes
 
-
+* The `datetime_utc` columns in the CSVs are in the **local time of the machine** that ran
+  `avroToCSV.py`, not strict UTC; the times given to `separate_participant.py` and the X axis of the
+  figures use that same reference. The `unix_timestamp_*` columns are true Unix epoch values.
+* Figure preprocessing: outlier removal by IQR (1.5·IQR) followed by linear interpolation;
+  accelerometer shown as the Euclidean norm of the three axes.
+* Tag names in `tags_def.py` differ slightly from some in `Plantilla.pdf` (e.g. `ts_stressvulnerability_*` = `ts_sv_*`);
+  the names in the code are the ones used by the plotting script.
+* Participant data (`cyberduck/`, `data/`) is excluded in `.gitignore`.
