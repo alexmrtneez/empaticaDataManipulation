@@ -35,7 +35,7 @@ dataDownload.sh ─► avroToCSV.py ─► separate_participant.py ─► (manua
 | 1 | `dataDownload.sh` | Downloads the AVRO files of one wristband and one day from S3 using Cyberduck CLI (`duck`). |
 | 2 | `avroToCSV.py` (+ `avro_utils.py`) | Converts the day's AVRO files into one CSV per sensor (`processed/`). Exports are commented/uncommented in `exportar_sensores()` depending on the wristband. |
 | 3 | `separate_participant.py` | Trims the CSVs to one participant's time window; computes pulse rate (BPM) from systolic peaks; extracts the evaluator's tags into `tags_orig.csv` and `tags_mod.csv`. |
-| 4 | *(manual)* | Review `tags_mod.csv`: if a tag noted on paper is missing, duplicate the previous row and adjust it; optionally fill an `anotacion` (annotation) column. |
+| 4 | *(manual)* | Review `tags_mod.csv`: if a tag noted on paper is missing, duplicate the previous row and adjust it; optionally fill an `anotacion` (annotation) column to note down any considerable behaviour. |
 | 5 | `tags_def.py` | Assigns a name to each tag by position and generates the final `<id>_tags.csv`. Rows with an `anotacion` are labelled `extra`. |
 | 6 | `graficarTiempoFreq.py` | Generates the per-phase time-series figure and the per-phase, per-signal distribution figure (violin + boxplot). |
 
@@ -92,6 +92,9 @@ Each phase is delimited by a pair of tags (see `configuracion_fases` in `grafica
 ## Example output (participant ECO_001)
 
 ![Time series](docs/ECO_001-2026-05-15_biometricos_fases.png)
+
+* Discontinuous red lines determine a tag noted down as `extra`, reflejando instantes en los que el evaluado se ha perdido.
+
 ![Distributions](docs/ECO_001-2026-05-15_distribucion_fases.png)
 
 ## Notes
