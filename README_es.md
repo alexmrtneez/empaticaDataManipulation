@@ -73,8 +73,17 @@ data/<pre|post>/<center>/<center>_<id>-<fecha>/   CSV del participante, tags y f
 
 ## Fases del protocolo (usadas en las figuras)
 
-Basal · Baño · Biodomo · Mariposario · Salida · Cuestionario posterior · Recuperación.
 Cada fase se delimita con un par de tags (ver `configuracion_fases` en `graficarTiempoFreq.py`).
+
+| Etiqueta en la figura | Descripción | Tag de inicio → tag de fin |
+|---|---|---|
+| Basal | Basal (EAV 1, asistencia previa y cuestionarios) | `ts_eav1_start` → `ts_sp_end` |
+| Baño | Actividad 1: Baño | `ts_inst_task1_start` → `ts_task1_end` |
+| Biodomo | Actividad 2: Biodomo | `ts_inst_task2_start` → `ts_task2_end` |
+| Mariposario | Actividad 3: Mariposario | `ts_inst_task3_start` → `ts_task3_end` |
+| Salida | Actividad 4: Salida | `ts_inst_task4_start` → `ts_task4_end` |
+| Cuestionario posterior | EAV 2 y entrevista de sensaciones percibidas | `ts_eav2_start` → `ts_et_end` |
+| Recuperación | Tarea de recuperación (línea base) y EAV 3 | `ts_inst_bl_start` → `ts_eav3_end` |
 
 ## Ejemplo de salida (participante ECO_001)
 
